@@ -6,4 +6,4 @@ then
 else
   iter=$2
 fi
-python -u tools/Test_pasta_HICO_DET.py --iteration $iter --model $1 2>&1|tee $1-test.log
+python -u tools/Test_pasta_HICO_DET.py --iteration $iter --model $1 2>&1|tee logs/$1/$1-test.log
