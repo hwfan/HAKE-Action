@@ -6,7 +6,7 @@ import _init_paths
 import tensorflow as tf
 import numpy as np
 import argparse
-import cPickle as pickle
+import pickle
 import os
 
 
@@ -44,7 +44,7 @@ def parse_args():
     parser.add_argument('--train_module', dest='train_module',
             help='How to compute loss',
             default=cfg.TRAIN_MODULE, type=int)
-    parser.add_argument('--data', dest='--data',
+    parser.add_argument('--data', dest='data',
             help='which data to choose',
             default=0, type=int)
     args = parser.parse_args()
@@ -55,6 +55,7 @@ def parse_args():
 if __name__ == '__main__':
 
     args = parse_args()
+
     cfg.TRAIN.SNAPSHOT_ITERS    = 100000
     cfg.TRAIN_MODULE_CONTINUE   = args.train_continue
     cfg.TRAIN_INIT_WEIGHT       = args.init_weight
@@ -62,11 +63,11 @@ if __name__ == '__main__':
     cfg.TRAIN_MODULE            = args.train_module
 
     if args.data == 0:   # pretrain/train on HICO-DET
-        Trainval_GT       = pickle.load(open(cfg.DATA_DIR + '/' + 'Trainval_GT_all_part.pkl', "rb"))
-        Trainval_N        = pickle.load(open(cfg.DATA_DIR + '/' + 'Trainval_Neg_all_part.pkl', "rb")) 
+        Trainval_GT       = pickle.load(open(cfg.DATA_DIR + '/' + 'Trainval_GT_all_part.pkl', "rb"), encoding='bytes')
+        Trainval_N        = pickle.load(open(cfg.DATA_DIR + '/' + 'Trainval_Neg_all_part.pkl', "rb"), encoding='bytes') 
     elif args.data == 1: # pretrain on full PaStaNet
-        Trainval_GT       = pickle.load(open(cfg.DATA_DIR + '/' + 'Trainval_GT_10w.pkl', "rb"))
-        Trainval_N        = pickle.load(open(cfg.DATA_DIR + '/' + 'Trainval_Neg_10w.pkl', "rb"))
+        Trainval_GT       = pickle.load(open(cfg.DATA_DIR + '/' + 'Trainval_GT_10w.pkl', "rb"), encoding='bytes')
+        Trainval_N        = pickle.load(open(cfg.DATA_DIR + '/' + 'Trainval_Neg_10w.pkl', "rb"), encoding='bytes')
 
     np.random.seed(cfg.RNG_SEED)
     # change this to trained model for finetune, 1800000, '/Weights/' + args.model + '/HOI_iter_' + str(args.iteration) + '.ckpt'

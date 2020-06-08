@@ -1,0 +1,8 @@
+__pycache__/
+Data/
+Weights/
+-Results/
+logs/
+Results.tar.gz
+lib/ult/HICO_DET_utils.py
+matrix_sentence_76.py

@@ -8,7 +8,7 @@ from ult.timer import Timer
 from ult.ult_HICO_DET import Get_next_sp_with_pose, Generate_part_bbox, Generate_relation_bbox, Generate_action_object
 from ult.HICO_DET_utils import obj_range, get_map
 
-import cPickle as pickle
+import pickle
 import numpy as np
 import os
 import sys
@@ -94,7 +94,6 @@ def test_net(sess, net, Test_RCNN, output_dir):
         odet.append([])
 
     for line in glob.iglob(cfg.DATA_DIR + '/' + 'hico_20160224_det/images/test2015/*.jpg'):
-
         _t['im_detect'].tic()
  
         image_id   = int(line[-9:-4])

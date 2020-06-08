@@ -6,7 +6,7 @@ from ult.config import cfg
 from ult.ult_HICO_DET import Get_Next_Instance_HO_HICO_DET_for_only_PVP
 from ult.timer import Timer
 
-import cPickle as pickle
+import pickle
 import numpy as np
 import os
 import sys
@@ -208,8 +208,8 @@ class SolverWrapper(object):
         iter_num = path_iter.split('_')[-1]
 
         Data_length = len(self.Trainval_GT)
-        keys = self.Trainval_GT.keys()
-        idx = range(len(keys))
+        keys = list(self.Trainval_GT.keys())
+        idx = list(range(len(keys)))
         np.random.shuffle(idx)
         
         if cfg.TRAIN_MODULE_CONTINUE == 2:

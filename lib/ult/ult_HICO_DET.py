@@ -254,7 +254,7 @@ def Generate_relation_bbox(Human, Object, new=False, isnp=False):
         return ans
 
 def Get_Next_Instance_HO_HICO_DET_for_only_PVP(Trainval_GT, Trainval_Neg, image_id, Pos_augment, Neg_select, pvp=76):
-    if isinstance(image_id, unicode):
+    if isinstance(image_id, str):
         im_file = config.cfg.DATA_DIR + '/' + 'hico_20160224_det/images/train2015/' + image_id
     else:
         im_file = config.cfg.DATA_DIR + '/' + 'hico_20160224_det/images/train2015/HICO_train2015_' + str(image_id).zfill(8) + '.jpg'

@@ -6,7 +6,7 @@ import _init_paths
 import tensorflow as tf
 import numpy as np
 import argparse
-import cPickle as pickle
+import pickle
 import os
 
 from ult.config import cfg
@@ -30,7 +30,7 @@ if __name__ == '__main__':
     cfg.TRAIN_MODULE = 2
 
     args = parse_args()
-    Test_RCNN = pickle.load( open( cfg.DATA_DIR + '/' + 'Test_all_part.pkl', "rb" ) ) # test detections
+    Test_RCNN = pickle.load( open( cfg.DATA_DIR + '/' + 'Test_all_part.pkl', "rb" ), encoding='bytes') # test detections
     np.random.seed(cfg.RNG_SEED)
     # pretrain model
     weight = cfg.ROOT_DIR + '/Weights/' + args.model + '/HOI_iter_' + str(args.iteration) + '.ckpt'
@@ -44,6 +44,7 @@ if __name__ == '__main__':
         os.mkdir(output_file)
 
     tfconfig = tf.ConfigProto(allow_soft_placement=True)
+    tfconfig.gpu_options.per_process_gpu_memory_fraction = 0.95
     tfconfig.gpu_options.allow_growth=True
     sess = tf.Session(config=tfconfig)
 
