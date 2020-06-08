@@ -1,5 +1,5 @@
 
-import cPickle as pickle
+import pickle
 import numpy as np
 import os
 import argparse
@@ -19,27 +19,27 @@ def parse_args():
 args = parse_args()
 
 im_index  = np.zeros(10000).astype(np.int32)
-mapping = pickle.load(open('key_mapping.pkl', 'rb'))
+mapping = pickle.load(open('key_mapping.pkl', 'rb'), encoding='bytes')
 for key in mapping.keys():
     im_index[key] = mapping[key]
 with h5py.File('hico_caffe600.h5', 'r') as f:
     score_I = f['w'][:, :]
 
-score_H  = pickle.load(open('TIN/score_H.pkl', 'rb'))
-score_O  = pickle.load(open('TIN/score_O.pkl', 'rb'))
-score_sp = pickle.load(open('TIN/score_sp.pkl', 'rb'))
-hdet     = pickle.load(open('TIN/hdet.pkl', 'rb'))
-odet     = pickle.load(open('TIN/odet.pkl', 'rb'))
-keys     = pickle.load(open('TIN/keys.pkl', 'rb'))
-pos      = pickle.load(open('TIN/pos.pkl', 'rb'))
-neg      = pickle.load(open('TIN/neg.pkl', 'rb'))
-bboxes   = pickle.load(open('TIN/bboxes.pkl', 'rb'))
+score_H  = pickle.load(open('TIN/score_H.pkl', 'rb'), encoding='bytes')
+score_O  = pickle.load(open('TIN/score_O.pkl', 'rb'), encoding='bytes')
+score_sp = pickle.load(open('TIN/score_sp.pkl', 'rb'), encoding='bytes')
+hdet     = pickle.load(open('TIN/hdet.pkl', 'rb'), encoding='bytes')
+odet     = pickle.load(open('TIN/odet.pkl', 'rb'), encoding='bytes')
+keys     = pickle.load(open('TIN/keys.pkl', 'rb'), encoding='bytes')
+pos      = pickle.load(open('TIN/pos.pkl', 'rb'), encoding='bytes')
+neg      = pickle.load(open('TIN/neg.pkl', 'rb'), encoding='bytes')
+bboxes   = pickle.load(open('TIN/bboxes.pkl', 'rb'), encoding='bytes')
 
-score_P  = pickle.load(open(args.model + '/scores_P.pkl', 'rb'))
-score_A  = pickle.load(open(args.model + '/scores_A.pkl', 'rb'))
-score_L  = pickle.load(open(args.model + '/scores_L.pkl', 'rb'))
+score_P  = pickle.load(open(args.model + '/scores_P.pkl', 'rb'), encoding='bytes')
+score_A  = pickle.load(open(args.model + '/scores_A.pkl', 'rb'), encoding='bytes')
+score_L  = pickle.load(open(args.model + '/scores_L.pkl', 'rb'), encoding='bytes')
 
-h_fac, o_fac, sp_fac, P_fac, A_fac, L_fac, hthresh, othresh, athresh, bthresh, P_weight, A_weight, L_weight = pickle.load(open('generation_args.pkl', 'rb'))
+h_fac, o_fac, sp_fac, P_fac, A_fac, L_fac, hthresh, othresh, athresh, bthresh, P_weight, A_weight, L_weight = pickle.load(open('generation_args.pkl', 'rb'), encoding='bytes')
 
 detection = {}
 detection['bboxes'] = []

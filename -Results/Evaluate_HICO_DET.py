@@ -1,4 +1,4 @@
-import cPickle as pickle
+import pickle
 import numpy as np
 import argparse
 from HICO_DET_utils import calc_ap, obj_range, rare
