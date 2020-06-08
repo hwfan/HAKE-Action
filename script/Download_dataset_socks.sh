@@ -21,7 +21,8 @@ ddl 'https://drive.google.com/open?id=1h0InSjxCffLuyoXEPbLIzOH0KVWUuUJc' Weights
 ddl 'https://drive.google.com/open?id=1l12Dr217NeTnbBA5e-9lLetMFmDv7eI9' Weights/pasta_HICO-DET.zip --proxy socks5h://127.0.0.1:1080
 ddl 'https://drive.google.com/open?id=1_O8eo1fmJtVzb_W5Y4emg_eE7LTJKPGR' Results.tar.gz --proxy socks5h://127.0.0.1:1080
 ddl 'https://drive.google.com/open?id=1_ubvIeBVIBT2-M0taN4ytf72B5xx0JR7' lib/ult/matrix_sentence_76.py --proxy socks5h://127.0.0.1:1080
-
+tar -xzvf Results.tar.gz
+rm Results.tar.gz
 ln -s ./-Results/HICO_DET_utils.py ./lib/ult/HICO_DET_utils.py
 
 ddl 'https://1drv.ms/u/s!ArUVoRxpBphY1jwevFWuaSetd4ay?e=y9xBRY' Weights/res50_faster_rcnn_iter_1190000.ckpt.data-00000-of-00001 --proxy socks5h://127.0.0.1:1080
