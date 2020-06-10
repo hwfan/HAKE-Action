@@ -48,14 +48,14 @@ def resnet_arg_scope(is_training=True,
 
 class ResNet50(): 
     def __init__(self):
-        self.visualize = {}
-        self.intermediate = {}
-        self.predictions = {}
-        self.score_summaries = {}
-        self.event_summaries = {}
-        self.train_summaries = []
-        self.losses = {}
-
+        self.gpu_num = len(cfg.GPU_LIST)
+        self.first_gpu = cfg.GPU_LIST[0]
+        self.predictions_list = [{} for _ in range(self.gpu_num)]
+        self.score_summaries_list = [{} for _ in range(self.gpu_num)]
+        self.event_summaries_list = [{} for _ in range(self.gpu_num)]
+        self.train_summaries_list = [[] for _ in range(self.gpu_num)]
+        self.losses_list = [{} for _ in range(self.gpu_num)]
+        self.val_summaries = []
         self.image       = tf.placeholder(tf.float32, shape=[1, None, None, 3], name = 'image') #scene stream
         self.H_boxes     = tf.placeholder(tf.float32, shape=[None, 5], name = 'H_boxes') # Human stream
         self.R_boxes     = tf.placeholder(tf.float32, shape=[None, 5], name = 'R_boxes') # PaSta stream
@@ -382,8 +382,13 @@ class ResNet50():
         self.score_summaries.update(self.predictions)
         return
 
-    def create_architecture(self, is_training):
-
+    def create_architecture(self, gpu_index, is_training):
+        self.predictions = self.predictions_list[gpu_index]
+        self.score_summaries = self.score_summaries_list[gpu_index]
+        self.event_summaries = self.event_summaries_list[gpu_index]
+        self.train_summaries = self.train_summaries_list[gpu_index]
+        self.losses = self.losses_list[gpu_index]
+        
         self.build_network(is_training)
 
         for var in tf.trainable_variables():
@@ -392,17 +397,35 @@ class ResNet50():
         self.add_loss()
         layers_to_output = {}
         layers_to_output.update(self.losses)
-
-        val_summaries = []
-        with tf.device("/cpu:0"):
-            for key, var in self.event_summaries.items():
-                val_summaries.append(tf.summary.scalar(key, var))
+        blob_symbol = {}
+        blob_symbol['image'] = self.image
+        blob_symbol['H_boxes'] = self.H_boxes
+        blob_symbol['O_boxes'] = self.O_boxes
+        blob_symbol['R_boxes'] = self.R_boxes
+        blob_symbol['P_boxes'] = self.P_boxes
+        blob_symbol['gt_class_P0'] = self.gt_class_P0
+        blob_symbol['gt_class_P1'] = self.gt_class_P1
+        blob_symbol['gt_class_P2'] = self.gt_class_P2
+        blob_symbol['gt_class_P3'] = self.gt_class_P3
+        blob_symbol['gt_class_P4'] = self.gt_class_P4
+        blob_symbol['gt_class_P5'] = self.gt_class_P5
+        blob_symbol['gt_verb'] = self.gt_verb
+        blob_symbol['gt_10v'] = self.gt_10v
+        blob_symbol['gt_class_HO'] = self.gt_class_HO
+        blob_symbol['gt_object'] = self.gt_object
         
-        val_summaries.append(tf.summary.scalar('lr', self.lr))
-        self.summary_op     = tf.summary.merge_all()
-        self.summary_op_val = tf.summary.merge(val_summaries)
+        blob_symbol['H_num'] = self.H_num
+        blob_symbol['lr'] = self.lr
+        
+        with tf.device("/cpu:0"):
+          for key, var in self.event_summaries.items():
+              self.val_summaries.append(tf.summary.scalar(key, var))
+        
+        self.val_summaries.append(tf.summary.scalar('lr', self.lr))
+        # self.summary_op     = tf.summary.merge_all()
+        self.summary_op_val = tf.summary.merge(self.val_summaries)
 
-        return layers_to_output
+        return layers_to_output, blob_symbol
 
     def add_loss(self):
 
@@ -497,35 +520,35 @@ class ResNet50():
     def add_train_summary(self, var):
         tf.summary.histogram('TRAIN/' + var.op.name, var)
 
-    def train_step(self, sess, blobs, lr, train_op):
-        feed_dict = {self.image: blobs['image'], 
-                     self.H_boxes: blobs['H_boxes'], self.P_boxes: blobs['P_boxes'], self.R_boxes: blobs['R_boxes'], self.O_boxes: blobs['O_boxes'], 
-                     self.gt_class_HO: blobs['gt_class_HO'], 
-                     self.gt_class_P0: blobs['gt_class_P0'], self.gt_class_P1: blobs['gt_class_P1'], 
-                     self.gt_class_P2: blobs['gt_class_P2'], self.gt_class_P3: blobs['gt_class_P3'], 
-                     self.gt_class_P4: blobs['gt_class_P4'], self.gt_class_P5: blobs['gt_class_P5'],
-                     self.gt_10v: blobs['gt_10v'], self.gt_verb: blobs['gt_verb'], self.gt_object: blobs['gt_object'], 
-                     self.lr: lr, self.H_num: blobs['H_num']}
+    def train_step(self, sess, to_feed, lr, train_op):
+        # feed_dict = {self.image: blobs['image'], 
+                     # self.H_boxes: blobs['H_boxes'], self.P_boxes: blobs['P_boxes'], self.R_boxes: blobs['R_boxes'], self.O_boxes: blobs['O_boxes'], 
+                     # self.gt_class_HO: blobs['gt_class_HO'], 
+                     # self.gt_class_P0: blobs['gt_class_P0'], self.gt_class_P1: blobs['gt_class_P1'], 
+                     # self.gt_class_P2: blobs['gt_class_P2'], self.gt_class_P3: blobs['gt_class_P3'], 
+                     # self.gt_class_P4: blobs['gt_class_P4'], self.gt_class_P5: blobs['gt_class_P5'],
+                     # self.gt_10v: blobs['gt_10v'], self.gt_verb: blobs['gt_verb'], self.gt_object: blobs['gt_object'], 
+                     # self.lr: lr, self.H_num: blobs['H_num']}
         
-        loss, _ = sess.run([self.losses['total_loss'],
+        loss, _ = sess.run([self.losses_list,
                             train_op],
-                            feed_dict=feed_dict)
+                            feed_dict=to_feed)
         return loss
 
-    def train_step_with_summary(self, sess, blobs, lr, train_op):
-        feed_dict = {self.image: blobs['image'], 
-                     self.H_boxes: blobs['H_boxes'], self.P_boxes: blobs['P_boxes'], self.R_boxes: blobs['R_boxes'], self.O_boxes: blobs['O_boxes'], 
-                     self.gt_class_HO: blobs['gt_class_HO'], 
-                     self.gt_class_P0: blobs['gt_class_P0'], self.gt_class_P1: blobs['gt_class_P1'], 
-                     self.gt_class_P2: blobs['gt_class_P2'], self.gt_class_P3: blobs['gt_class_P3'], 
-                     self.gt_class_P4: blobs['gt_class_P4'], self.gt_class_P5: blobs['gt_class_P5'], 
-                     self.gt_10v: blobs['gt_10v'], self.gt_verb: blobs['gt_verb'], self.gt_object: blobs['gt_object'], 
-                     self.lr: lr, self.H_num: blobs['H_num']}
+    def train_step_with_summary(self, sess, to_feed, lr, train_op):
+        # feed_dict = {self.image: blobs['image'], 
+                     # self.H_boxes: blobs['H_boxes'], self.P_boxes: blobs['P_boxes'], self.R_boxes: blobs['R_boxes'], self.O_boxes: blobs['O_boxes'], 
+                     # self.gt_class_HO: blobs['gt_class_HO'], 
+                     # self.gt_class_P0: blobs['gt_class_P0'], self.gt_class_P1: blobs['gt_class_P1'], 
+                     # self.gt_class_P2: blobs['gt_class_P2'], self.gt_class_P3: blobs['gt_class_P3'], 
+                     # self.gt_class_P4: blobs['gt_class_P4'], self.gt_class_P5: blobs['gt_class_P5'], 
+                     # self.gt_10v: blobs['gt_10v'], self.gt_verb: blobs['gt_verb'], self.gt_object: blobs['gt_object'], 
+                     # self.lr: lr, self.H_num: blobs['H_num']}
 
-        loss, summary, _ = sess.run([self.losses['total_loss'], 
-                                     self.summary_op, 
+        loss, summary, _ = sess.run([self.losses_list, 
+                                     self.summary_op_val, 
                                      train_op], 
-                                     feed_dict=feed_dict)
+                                     feed_dict=to_feed)
         return loss, summary
 
     def test_image_HO(self, sess, image, blobs):

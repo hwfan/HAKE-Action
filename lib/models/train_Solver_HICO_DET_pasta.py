@@ -46,16 +46,34 @@ class SolverWrapper(object):
         filename = os.path.join(self.output_dir, filename)
         self.saver.save(sess, filename)
         print('Wrote snapshot to: {:s}'.format(filename))
+        
+    def average_gradients(self, tower_grads):
+      average_grads = []
+      for grad_and_vars in zip(*tower_grads):
+        # Note that each grad_and_vars looks like the following:
+        #   ((grad0_gpu0, var0_gpu0), ... , (grad0_gpuN, var0_gpuN))
+        grads = [g for g, _ in grad_and_vars]
 
-    def construct_graph(self, sess):
-        with sess.graph.as_default():
+        # Average over the 'tower' dimension.
+
+        grad = tf.stack(grads, 0)
+        # print(grad)
+        grad = tf.reduce_mean(grad, 0)
+
+        # Keep in mind that the Variables are redundant because they are shared
+        # across towers. So .. we will just return the first tower's pointer to
+        # the Variable.
+        v = grad_and_vars[0][1]
+        grad_and_var = (grad, v)
+        average_grads.append(grad_and_var)
+      return average_grads
       
-            # Set the random seed for tensorflow
-            tf.set_random_seed(cfg.RNG_SEED)
-            # Build the main computation graph
-            layers = self.net.create_architecture(True) # is_training flag: True
-            # Define the loss
-            loss = layers['total_loss']
+    def construct_graph(self, sess):
+        gpu_num = len(cfg.GPU_LIST)
+        with sess.graph.as_default():
+          # Set the random seed for tensorflow
+          tf.set_random_seed(cfg.RNG_SEED)
+          with tf.device('/gpu:%d'%cfg.GPU_LIST[0]):
             path_iter = self.pretrained_model.split('.ckpt')[0]
             iter_num = path_iter.split('_')[-1]
             # from iter_ckpt
@@ -64,23 +82,39 @@ class SolverWrapper(object):
             # from iter 0
             elif cfg.TRAIN_MODULE_CONTINUE == 2:
                 global_step    = tf.Variable(0, trainable=False)
-
             first_decay_steps = 2 * len(self.Trainval_GT) # need test, 2 epoches
-            lr = cosine_decay_restarts(cfg.TRAIN.LEARNING_RATE * 10, global_step, first_decay_steps, t_mul=2.0, m_mul=1.0, alpha=0.0) 
+            lr = cosine_decay_restarts(cfg.TRAIN.LEARNING_RATE * 10, global_step, first_decay_steps / gpu_num, t_mul=2.0, m_mul=1.0, alpha=0.0) 
             self.optimizer = tf.train.MomentumOptimizer(lr, cfg.TRAIN.MOMENTUM)
-            list_var_to_update = tf.trainable_variables()
-            for var in list_var_to_update:
-                print(var.name)
-            grads_and_vars = self.optimizer.compute_gradients(loss, list_var_to_update)
-            capped_gvs     = [(tf.clip_by_norm(grad, 1.), var) for grad, var in grads_and_vars]
-            train_op = self.optimizer.apply_gradients(capped_gvs,global_step=global_step)
+            multi_grads = []
+            symbols = []
+            for index, gpu_id in enumerate(cfg.GPU_LIST):
+              with tf.device('/gpu:%d' % gpu_id):
+                print('gpu:%d constructing...'% gpu_id)
+                with tf.name_scope('tower_%d' % gpu_id):
+                  with tf.variable_scope('',reuse=index>0):
+                    # Build the main computation graph
+                    layers, blob_symbol = self.net.create_architecture(index, True) # is_training flag: True
+                    # Define the loss
+                    loss = layers['total_loss']
+                    list_var_to_update = tf.trainable_variables()
+                    # for var in list_var_to_update:
+                      # print(var.name)
+                    grads_and_vars = self.optimizer.compute_gradients(loss, list_var_to_update)
+                    capped_gvs     = [(tf.clip_by_norm(grad, 1.), var) for grad, var in grads_and_vars]
+                    multi_grads.append(capped_gvs)
+                    symbols.append(blob_symbol)
+            if len(cfg.GPU_LIST) > 1:
+              average_grads = self.average_gradients(multi_grads)
+            else:
+              average_grads = multi_grads[0]
+            train_op = self.optimizer.apply_gradients(average_grads,global_step=global_step)
             
             self.saver = tf.train.Saver(max_to_keep=cfg.TRAIN.SNAPSHOT_KEPT)
             
             # Write the train and validation information to tensorboard
             self.writer = tf.summary.FileWriter(self.tbdir, sess.graph)
 
-        return lr, train_op
+        return lr, train_op, symbols
 
     def from_snapshot(self, sess):
     
@@ -93,22 +127,22 @@ class SolverWrapper(object):
             saver_t += [var for var in tf.model_variables() if 'shortcut' in var.name]
 
             sess.run(tf.global_variables_initializer())
-            for var in tf.trainable_variables():
-                print(var.name, var.eval().mean())
+            # for var in tf.trainable_variables():
+                # print(var.name, var.eval().mean())
 
             print('Restoring model snapshots from {:s}'.format(self.pretrained_model))
 
             self.saver_restore = tf.train.Saver(saver_t)
             self.saver_restore.restore(sess, self.pretrained_model)
 
-            for var in tf.trainable_variables():
-                print(var.name, var.eval().mean())
+            # for var in tf.trainable_variables():
+                # print(var.name, var.eval().mean())
 
         if self.Restore_flag == 5 or self.Restore_flag == 6 or self.Restore_flag == 7:
 
             sess.run(tf.global_variables_initializer())
-            for var in tf.trainable_variables():
-                print(var.name, var.eval().mean())
+            # for var in tf.trainable_variables():
+                # print(var.name, var.eval().mean())
             
             print('Restoring model snapshots from {:s}'.format(self.pretrained_model))
             saver_t = {}
@@ -167,8 +201,8 @@ class SolverWrapper(object):
                 self.saver_restore = tf.train.Saver(saver_t)
                 self.saver_restore.restore(sess, self.pretrained_model)
 
-        for var in tf.trainable_variables():
-            print(var.name, var.eval().mean())
+        # for var in tf.trainable_variables():
+            # print(var.name, var.eval().mean())
 
     def from_previous_ckpt(self,sess):
         sess.run(tf.global_variables_initializer())
@@ -189,7 +223,7 @@ class SolverWrapper(object):
         self.saver_restore.restore(sess, self.pretrained_model)
 
     def train_model(self, sess, max_iters):
-        lr, train_op = self.construct_graph(sess)
+        lr, train_op, symbols = self.construct_graph(sess)
 
         if cfg.TRAIN_MODULE_CONTINUE == 1:
             self.from_previous_ckpt(sess)
@@ -204,6 +238,7 @@ class SolverWrapper(object):
         sess.graph.finalize()
 
         timer = Timer()
+        data_timer = Timer()
         path_iter = self.pretrained_model.split('.ckpt')[0]
         iter_num = path_iter.split('_')[-1]
 
@@ -217,26 +252,37 @@ class SolverWrapper(object):
         elif cfg.TRAIN_MODULE_CONTINUE == 1:
             iter = int(iter_num) + 1
 
+        gpu_num = len(cfg.GPU_LIST)
+        
         while iter < max_iters + 1:
             timer.tic()
-            
+            data_timer.tic()
             if iter % Data_length == 0:
                 np.random.shuffle(idx)
             
             image_id = keys[idx[iter % Data_length]]
-
-            blobs = Get_Next_Instance_HO_HICO_DET_for_only_PVP(self.Trainval_GT, self.Trainval_N, image_id, self.Pos_augment, self.Neg_select)
-
+            
+            to_feed = {}
+            start = gpu_num*iter
+            for offset in range(gpu_num):
+              symbol_dict = symbols[offset]
+              blobs = Get_Next_Instance_HO_HICO_DET_for_only_PVP(self.Trainval_GT, self.Trainval_N, image_id, self.Pos_augment, self.Neg_select)
+              for key in blobs.keys():
+                to_feed[symbol_dict[key]] = blobs[key]
+            to_feed[symbol_dict['lr']] = lr.eval()
+            data_timer.toc()
+            
             if (iter % cfg.TRAIN.SUMMARY_INTERVAL == 0) or (iter < 20):
                 # Compute the graph with summary
-                total_loss, summary = self.net.train_step_with_summary(sess, blobs, lr.eval(), train_op)
+                losses, summary = self.net.train_step_with_summary(sess, to_feed, lr.eval(), train_op)
                 self.writer.add_summary(summary, float(iter))
             else:
                 # Compute the graph without summary
-                total_loss = self.net.train_step(sess, blobs, lr.eval(), train_op)
-            del blobs
+                losses = self.net.train_step(sess, to_feed, lr.eval(), train_op)
+            del to_feed
             timer.toc()
-
+            
+            total_loss = sum([loss_per_gpu['total_loss'] for loss_per_gpu in losses]) / gpu_num
             # Display training information
             if iter % (cfg.TRAIN.DISPLAY) == 0:
                 print('iter: %d / %d, im_id: %5u, total loss: %.6f, lr: %f, speed: %.3f s/iter' % \
@@ -262,6 +308,7 @@ def train_net(network, Trainval_GT, Trainval_N, output_dir, tb_dir, Pos_augment,
         # Remove previous events
         filelist = [ f for f in os.listdir(tb_dir)]
         for f in filelist:
+          if 'tfevents' in f:
             os.remove(os.path.join(tb_dir, f))
         # Remove previous snapshots
         filelist = [ f for f in os.listdir(output_dir)]

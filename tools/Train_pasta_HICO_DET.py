@@ -16,6 +16,9 @@ from networks.pasta_HICO_DET import ResNet50
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train an iCAN on HICO')
+    parser.add_argument('--gpu', dest='gpu',
+            help='gpus to use',
+            default='0', type=str)
     parser.add_argument('--num_iteration', dest='max_iters',
             help='Number of iterations to perform',
             default=1800000, type=int)
@@ -61,7 +64,9 @@ if __name__ == '__main__':
     cfg.TRAIN_INIT_WEIGHT       = args.init_weight
     cfg.TRAIN_MODULE_UPDATE     = args.module_update
     cfg.TRAIN_MODULE            = args.train_module
-
+    cfg.GPU_LIST = list(map(lambda x: int(x),args.gpu.split(',')))
+    gpu_num = len(cfg.GPU_LIST)
+    multi_gpu_max_iters = args.max_iters // gpu_num
     if args.data == 0:   # pretrain/train on HICO-DET
         Trainval_GT       = pickle.load(open(cfg.DATA_DIR + '/' + 'Trainval_GT_all_part.pkl', "rb"), encoding='bytes')
         Trainval_N        = pickle.load(open(cfg.DATA_DIR + '/' + 'Trainval_Neg_all_part.pkl', "rb"), encoding='bytes') 
@@ -87,4 +92,4 @@ if __name__ == '__main__':
 
     net = ResNet50()
  
-    train_net(net, Trainval_GT, Trainval_N, output_dir, tb_dir, args.Pos_augment, args.Neg_select, args.Restore_flag, weight, max_iters=args.max_iters)
+    train_net(net, Trainval_GT, Trainval_N, output_dir, tb_dir, args.Pos_augment, args.Neg_select, args.Restore_flag, weight, max_iters=multi_gpu_max_iters)

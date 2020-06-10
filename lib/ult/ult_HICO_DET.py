@@ -283,7 +283,7 @@ def Get_Next_Instance_HO_HICO_DET_for_only_PVP(Trainval_GT, Trainval_Neg, image_
     blobs['gt_class_P4'] = action_PVP4
     blobs['gt_class_P5'] = action_PVP5
     blobs['H_num'] = num_pos
-    blobs['binary_label'] = binary_label
+    # blobs['binary_label'] = binary_label
     blobs['gt_10v'] = gt_10v
     blobs['gt_verb'] = gt_verb
     blobs['gt_object'] = gt_object
