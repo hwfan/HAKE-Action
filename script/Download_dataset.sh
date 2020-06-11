@@ -23,7 +23,7 @@ ddl 'https://drive.google.com/open?id=1_O8eo1fmJtVzb_W5Y4emg_eE7LTJKPGR' Results
 ddl 'https://drive.google.com/open?id=1_ubvIeBVIBT2-M0taN4ytf72B5xx0JR7' lib/ult/matrix_sentence_76.py
 tar -xzvf Results.tar.gz
 rm Results.tar.gz
-ln -s ./-Results/HICO_DET_utils.py ./lib/ult/HICO_DET_utils.py
+ln ./-Results/HICO_DET_utils.py ./lib/ult/HICO_DET_utils.py
 
 ddl 'https://1drv.ms/u/s!ArUVoRxpBphY1jwevFWuaSetd4ay?e=y9xBRY' Weights/res50_faster_rcnn_iter_1190000.ckpt.data-00000-of-00001
 ddl 'https://1drv.ms/u/s!ArUVoRxpBphY1jpA3iVqOsMdISvl?e=3MXJIZ' Weights/res50_faster_rcnn_iter_1190000.ckpt.index

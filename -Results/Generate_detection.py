@@ -5,6 +5,7 @@ import os
 import argparse
 import torch
 import h5py
+from sklearn.externals import joblib
 from HICO_DET_utils import calc_ap, obj_range, rare, getSigmoid, hoi_no_inter_all
 from HICO_DET_utils import obj_range, getSigmoid, hoi_no_inter_all
 
@@ -13,6 +14,9 @@ def parse_args():
     parser.add_argument('--model', dest='model',
             help='Select model to generate',
             default='', type=str)
+    parser.add_argument('--pickle', dest='pickle',
+            help='use pickle instead of joblib',
+            action='store_true')
     args = parser.parse_args()
     return args
 
@@ -35,10 +39,19 @@ pos      = pickle.load(open('TIN/pos.pkl', 'rb'), encoding='bytes')
 neg      = pickle.load(open('TIN/neg.pkl', 'rb'), encoding='bytes')
 bboxes   = pickle.load(open('TIN/bboxes.pkl', 'rb'), encoding='bytes')
 
-score_P  = pickle.load(open(args.model + '/scores_P.pkl', 'rb'), encoding='bytes')
-score_A  = pickle.load(open(args.model + '/scores_A.pkl', 'rb'), encoding='bytes')
-score_L  = pickle.load(open(args.model + '/scores_L.pkl', 'rb'), encoding='bytes')
-
+if not args.pickle:
+  score_P  = joblib.load(args.model + '/scores_P.pkl')
+  score_A  = joblib.load(args.model + '/scores_A.pkl')
+  score_L  = joblib.load(args.model + '/scores_L.pkl')
+  # bboxes = joblib.load(args.model + '/bboxes.pkl')
+  # keys = joblib.load(args.model + '/keys.pkl')
+  # hdet = joblib.load(args.model + '/hdet.pkl')
+  # odet = joblib.load(args.model + '/odet.pkl')
+else:
+  score_P  = pickle.load(open(args.model + '/scores_P.pkl', 'rb'), encoding='bytes')
+  score_A  = pickle.load(open(args.model + '/scores_A.pkl', 'rb'), encoding='bytes')
+  score_L  = pickle.load(open(args.model + '/scores_L.pkl', 'rb'), encoding='bytes')
+  
 h_fac, o_fac, sp_fac, P_fac, A_fac, L_fac, hthresh, othresh, athresh, bthresh, P_weight, A_weight, L_weight = pickle.load(open('generation_args.pkl', 'rb'), encoding='bytes')
 
 detection = {}
