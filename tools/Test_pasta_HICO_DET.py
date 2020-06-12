@@ -52,14 +52,11 @@ if __name__ == '__main__':
 
     # output directory where the logs are saved
     print ('iter = ' + str(args.iteration) + ', path = ' + weight ) 
-    output_parent = cfg.ROOT_DIR + '/-Results/' + str(args.iteration) + '_' + args.model
+    output_parent = cfg.ROOT_DIR + '/-Results/' + str(args.iteration) + '_' + args.model + '/'
     output_file = cfg.ROOT_DIR + '/-Results/' + str(args.iteration) + '_' + args.model + '/' + 'range' + '_' + str(start) + '_' + str(end) + '/'
     
-    if not os.path.exists(output_parent):
-        os.mkdir(output_parent)
-        
-    if not os.path.exists(output_file):
-        os.mkdir(output_file)
+    os.makedirs(output_parent, exist_ok=True)
+    os.makedirs(output_file, exist_ok=True)
 
     tfconfig = tf.ConfigProto(allow_soft_placement=True)
     tfconfig.gpu_options.per_process_gpu_memory_fraction = 0.95
