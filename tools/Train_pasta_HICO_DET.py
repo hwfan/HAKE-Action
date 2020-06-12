@@ -50,6 +50,9 @@ def parse_args():
     parser.add_argument('--data', dest='data',
             help='which data to choose',
             default=0, type=int)
+    parser.add_argument('--pretrained', dest='model',
+            help='pretrained model',
+            default='', type=str)
     args = parser.parse_args()
     return args
 
@@ -81,9 +84,11 @@ if __name__ == '__main__':
     else:
         if cfg.TRAIN_INIT_WEIGHT == 1:   # pretrain on full PaStaNet or train on HICO-DET
             weight    = cfg.ROOT_DIR + '/Weights/res50_faster_rcnn_iter_1190000.ckpt' # from faster R-CNN
-        elif cfg.TRAIN_INIT_WEIGHT == 2: # finetune on HICO-DET
-            weight    = cfg.ROOT_DIR + '/Weights/pretrain_for_HICO_DET/model.ckpt'
-    
+        elif cfg.TRAIN_INIT_WEIGHT == 2: # finetune on pretrained model
+          if len(args.pretrained) == 0:
+            weight    = cfg.ROOT_DIR + '/Weights/pasta_HICO-DET/HOI_iter_2000000.ckpt'
+          else:
+            weight    = args.pretrained
     # output directory where the logs are saved
     tb_dir     = cfg.ROOT_DIR + '/logs/' + args.model + '/'
 

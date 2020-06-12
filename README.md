@@ -74,6 +74,42 @@ chmod +x ./script/Download_dataset_socks.sh
 pip install -r requirements.txt
 ```
 
+### Train, finetune and test on shell
+
+1.Pretrain
+
+```
+script/train.sh 0 debug 2000000 
+```
+
+2.Finetune
+
+On best model:
+
+```
+script/finetune.sh 0,1 debug 2000000 
+```
+
+On self pretrained model:
+
+```
+script/finetune-selfpretrain.sh 0,1 debug 2000000 ***.ckpt
+```
+
+3.Test
+
+PastaNet*
+
+```
+script/test-mul.sh 0,1 debug 2000000
+```
+
+PastaNet
+
+```
+script/test-mul-full.sh 0,1 debug 2000000
+```
+
 ### Training
 
 1.Pretrain Activity2Vec (now PaStaNet* is available, larger PaStaNet is coming soon)

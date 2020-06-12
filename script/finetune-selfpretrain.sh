@@ -1,0 +1,9 @@
+#!/bin/bash
+mkdir -p logs/$2
+if [ ! -n "$3" ]
+then
+  iter=2000000
+else
+  iter=$3
+fi
+python -u tools/Train_pasta_HICO_DET.py --gpu $1 --data 0 --init_weight 2 --train_module 1 --num_iteration $iter --model $2 --pretrained $4 2>&1|tee logs/$2/$2-finetune.log
