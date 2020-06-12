@@ -17,6 +17,9 @@ def parse_args():
     parser.add_argument('--pickle', dest='pickle',
             help='use pickle instead of joblib',
             action='store_true')
+    parser.add_argument('--full', dest='full',
+            help='use full pasta',
+            action='store_true')
     args = parser.parse_args()
     return args
 
@@ -52,7 +55,7 @@ else:
   score_A  = pickle.load(open(args.model + '/scores_A.pkl', 'rb'), encoding='bytes')
   score_L  = pickle.load(open(args.model + '/scores_L.pkl', 'rb'), encoding='bytes')
   
-h_fac, o_fac, sp_fac, P_fac, A_fac, L_fac, hthresh, othresh, athresh, bthresh, P_weight, A_weight, L_weight = pickle.load(open('generation_args.pkl', 'rb'), encoding='bytes')
+h_fac, o_fac, sp_fac, P_fac, A_fac, L_fac, hthresh, othresh, athresh, bthresh, _, _, _ = pickle.load(open('generation_args.pkl', 'rb'), encoding='bytes')
 
 detection = {}
 detection['bboxes'] = []
@@ -60,6 +63,10 @@ detection['scores'] = []
 detection['index']  = []
 detection['keys']   = []
 
+if args.full:
+  P_weight, A_weight, L_weight = 1, 0, 0.6
+else:
+  P_weight, A_weight, L_weight = 1, 0.4, 1
 for i in range(600):
     detection['index'].append([])
     detection['scores'].append([])
@@ -89,7 +96,6 @@ for obj_index in range(80):
     sA  = torch.sigmoid(torch.from_numpy(score_A[obj_index]).cuda()).cpu().numpy() * A_weight
     sL  = torch.sigmoid(torch.from_numpy(score_L[obj_index]).cuda()).cpu().numpy() * L_weight
     sHO = (((sH + sO) * ssp + sP + sA + sL) * score_I[im_index[keys[obj_index]], x:y]) * hod
-
     for hoi_index in range(x, y):
         at, bt = athresh[hoi_index], bthresh[hoi_index]
         if hoi_index + 1 in hoi_no_inter_all:
