@@ -50,7 +50,7 @@ def parse_args():
     parser.add_argument('--data', dest='data',
             help='which data to choose',
             default=0, type=int)
-    parser.add_argument('--pretrained', dest='model',
+    parser.add_argument('--pretrained', dest='pretrained',
             help='pretrained model',
             default='', type=str)
     args = parser.parse_args()
