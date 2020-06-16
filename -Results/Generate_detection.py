@@ -66,7 +66,7 @@ detection['keys']   = []
 if args.full:
   P_weight, A_weight, L_weight = 1, 0, 0.6
 else:
-  P_weight, A_weight, L_weight = 1, 0.4, 1
+  P_weight, A_weight, L_weight = 1, 0, 0#1, 0.4, 1
 for i in range(600):
     detection['index'].append([])
     detection['scores'].append([])
